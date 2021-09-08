@@ -1,1 +1,91 @@
+#!/usr/bin/env bash
+
+import os
+import subprocess
+from sys import stderr
+import time
+import subprocess
+
+#checking containers
+contaiers = ["b4bfca355726"]
+device = ["KPS7N18419007886"]
+active = True
+
+def runTest():
+        try:
+            process = subprocess.check_output(seachInContainer, stderr=subprocess.STDOUT ,shell=True)
+            print("phone located in container")
+            print(process)
+            return 
+
+        except:
+            print("cant find phone, valitading if device is located somewhere else")
+            try:
+                process = subprocess.check_output(searchLocally, stderr=subprocess.STDOUT ,shell=True)
+                print("phone located locally")
+                localrun()
+            except:
+                print("cant find it")
+
+def localrun():
+    print("accesing local run")
+    restartContainer = "docker restart b4bfca355726 " 
+    adbInsideContainer = "docker exec -it b4 adb devices"
+    preparingDevice  = "adb -s KPS7N18419007886 reboot "
+    connectingDevice = "adb -s KPS7N18419007886 reconnect"
+    validatingConnection = "docker exec -it b4bfca355726 adb -s KPS7N18419007886 shell svc wifi enable"
+    validateDisconnectionLocal = "adb -s KPS7N18419007886 shell svc wifi enable"
+    print("starting reinstalation of device")
+    process = subprocess.check_output(preparingDevice, stderr=subprocess.STDOUT ,shell=True)
+    print("restarted phone")
+    time.sleep(40)
+    process = subprocess.check_output(restartContainer , stderr=subprocess.STDOUT ,shell=True)
+    print("container restarted")
+    time.sleep(5)
+    process = subprocess.check_output(adbInsideContainer, stderr=subprocess.STDOUT ,shell=True)
+    print("restarting adb server inside container")
+    time.sleep(5)
+    process = subprocess.check_output(connectingDevice, stderr=subprocess.STDOUT ,shell=True)
+    print("connecting device")
+    inContainer = False
+    number = 0
+    while inContainer == False:
+        try:
+            print("phone not found in container ")
+            process = subprocess.check_output(connectingDevice , stderr=subprocess.STDOUT ,shell=True)
+            time.sleep(2)
+            process = subprocess.check_output(validateDisconnectionLocal , stderr=subprocess.STDOUT ,shell=True)
+            number +=1
+            print(number)
+            if number >= 11 :
+                print("restarting container")
+                process = subprocess.check_output(restartContainer , stderr=subprocess.STDOUT ,shell=True)
+                time.sleep(8)
+                process = subprocess.check_output(adbInsideContainer , stderr=subprocess.STDOUT ,shell=True)
+                time.sleep(2)
+                number = 0
+
+        except:
+            print("device is no longer in location validating if device is in container")
+            try:
+                process = subprocess.check_output(validatingConnection , stderr=subprocess.STDOUT ,shell=True)
+                print("device has been place in container ready for testing")
+                return
+            except:
+                print("cant find device in container restarting process")
+                localrun()
+
+
+while active == True:
+    print("searching for phone")
+    searchLocally = "adb -s KPS7N18419007886 shell svc wifi enable"
+    seachInContainer = "docker exec -it " + contaiers[0] + " adb -s " + device[0] + " shell svc wifi enable"
+    preparingDevice  = "adb -s KPS7N18419007886 reconnect device "
+    #test_scan = "adb shell svc wifi enable"
+
+
+
+    runTest()
+    active=False
+
 
