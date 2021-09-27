@@ -5,60 +5,139 @@ import subprocess
 from sys import stderr
 import time
 import subprocess
+from typing import overload
 
-#checking containers
-contaiers = ["b4bfca355726"]
-device = ["KPS7N18419007886"]
+
+#Containers and devices
+containers = ["3b1fc7b93c40","c06075e0526d", "4bfaca1ac78e","4a80442c8847","a1e4f484f56f","7aa15383d6c6","ecc064f55dc9","c19e1c57ee43"]
+containerTask = 0
+device = ["17abea03","5200f8924f569501","52000239422d26cf","52003603eaaa5543","b151dee9","0a3750f5","81b768b0","5200bcacb46155a1"]
+deviceTask = 0
+numberOfDevice= 9
+
 active = True
+attempt = 0
+incontainer = False
+#tasks
+searchLocally = "adb -s " + device[containerTask]+ " shell svc data enable"
+seachInContainer = "docker exec -it " + containers[containerTask] + " adb -s " + device[deviceTask] + " shell svc data enable"
+restartContainer = "docker restart " + containers[containerTask]
+disconnectingFromContainer = "docker exec -it " + containers[containerTask] + " adb -s " + device[deviceTask] + " reconnect"
+adbInsideContainer = "docker exec -it " + containers[containerTask] + "  adb devices"
+preparingDevice  = "adb -s " + device[deviceTask] + " reboot "
+connectingDevice = "adb -s " + device[deviceTask] + " reconnect"
+validatingConnection = "docker exec -it " + containers[containerTask] + " adb -s " + device[deviceTask] + " shell svc data enable"
+validateDisconnectionLocal = "adb -s " + device[deviceTask] + " shell svc data enable"
 
-def runTest():
+def insideContainerTest():
+    global seachInContainer
+    containerTask = deviceTask
+    print("running inspection inside designated container \n")
+    seachInContainer = "docker exec -it " + containers[containerTask] + " adb -s " + device[deviceTask] + " shell svc data enable"
+    try:
+        print("designated \n")
+        print("searching for device " + device[deviceTask])
+        print("running container: " + containers[containerTask])
+        process = subprocess.check_output(seachInContainer, stderr=subprocess.STDOUT ,shell=True)
+        print(process)
+        print("phone located in container \n")
+         
+
+    except:
+        print("not in the container validating if its located within another container \n") 
+        containerSearch()
+def containerSearch():
+    global containerTask,currentTask, attempt, incontainer,containerTask,deviceTask
+
+    while incontainer ==False:
+        seachInContainer = "docker exec -it " + containers[containerTask] + " adb -s " + device[deviceTask] + " shell svc data enable"
+        disconnectingFromContainer = "docker exec -it " + containers[containerTask] + " adb -s " + device[deviceTask] + " reconnect"
+        searchLocally = "adb -s " + device[containerTask]+ " shell svc data enable"
         try:
-            process = subprocess.check_output(seachInContainer, stderr=subprocess.STDOUT ,shell=True)
-            print("phone located in container")
-            print(process)
-            return 
-
+            print("containerSearch")
+            print("validating in " + containers[containerTask])
+            print("searching for device: " + device[deviceTask])
+            print(seachInContainer)
+            process = subprocess.check_output(seachInContainer , stderr=subprocess.STDOUT ,shell=True)
+            print("found device")
+            if containerTask == deviceTask:
+                print("phone is right location READY FOR TESTING")
+                break
+            else:
+                print("disconnecting phone from wrong container")
+                process = subprocess.check_output(disconnectingFromContainer , stderr=subprocess.STDOUT ,shell=True)
+                time.sleep(2)
+                containerSearch()
         except:
-            print("cant find phone, valitading if device is located somewhere else")
-            try:
-                process = subprocess.check_output(searchLocally, stderr=subprocess.STDOUT ,shell=True)
-                print("phone located locally")
-                localrun()
-            except:
-                print("cant find it")
+            print("device not found in container \n")
+            time.sleep(3)
+            containerTask += 1
+            if containerTask >= 3:
+                containerTask = 0
+                print("cant find phone in container, valitading if device is located locally \n")
+
+                time.sleep(2)
+                try:
+                    process = subprocess.check_output(searchLocally, stderr=subprocess.STDOUT ,shell=True)
+                    print(process)
+                    print("phone located locally \n")
+                    localrun()
+                except:
+                    attempt += 1 
+                    print("can find phone locally, searching again inside containers : " + str(attempt))
+                    if attempt >= 3:
+                        print("CANT FIND DEVICE: " + device[deviceTask] + " PLEASE CHECK TO MAKE SURE IS CONNECTED \n")
+                        incontainer = True
+                    containerSearch()
 
 def localrun():
-    print("accesing local run")
-    restartContainer = "docker restart b4bfca355726 " 
-    adbInsideContainer = "docker exec -it b4 adb devices"
-    preparingDevice  = "adb -s KPS7N18419007886 reboot "
-    connectingDevice = "adb -s KPS7N18419007886 reconnect"
-    validatingConnection = "docker exec -it b4bfca355726 adb -s KPS7N18419007886 shell svc wifi enable"
-    validateDisconnectionLocal = "adb -s KPS7N18419007886 shell svc wifi enable"
-    print("starting reinstalation of device")
+    global deviceTask, containerTask, restartContainer,preparingDevice,connectingDevice
+    print("initiating local run, starting with reinstalation of device")
+    containerTask = deviceTask
+    restartContainer = "docker restart " + containers[containerTask]
+    preparingDevice  = "adb -s " + device[deviceTask] + " reboot "
+    validateDisconnectionLocal = "adb -s " + device[deviceTask] + " shell svc data enable"
+    adbInsideContainer = "docker exec -it " + containers[containerTask] +" adb devices"
+    connectingDevice = "adb -s " + device[deviceTask] + " reconnect"
+
+    print("searching for device in local funcion " + device[deviceTask])
+    print("running container:" + containers[containerTask])
+    time.sleep(2)
     process = subprocess.check_output(preparingDevice, stderr=subprocess.STDOUT ,shell=True)
-    print("restarted phone")
+    print("restarting phone ")
     time.sleep(40)
+    isBackOn = False
+    timer = 0
+    while isBackOn == False:
+        try:
+            print("validating if phone has connected correctly ")
+            time.sleep(6)
+            process = subprocess.check_output(validateDisconnectionLocal , stderr=subprocess.STDOUT ,shell=True)
+            isBackOn = True
+            print("phone is back on")
+        except:
+            print("device is still off ")
+            timer += 1
+            if timer >= 10:
+                containerSearch()
     process = subprocess.check_output(restartContainer , stderr=subprocess.STDOUT ,shell=True)
-    print("container restarted")
+    print("restarting container first phase")
     time.sleep(5)
     process = subprocess.check_output(adbInsideContainer, stderr=subprocess.STDOUT ,shell=True)
-    print("restarting adb server inside container")
-    time.sleep(5)
-    process = subprocess.check_output(connectingDevice, stderr=subprocess.STDOUT ,shell=True)
-    print("connecting device")
+    print("starting adb server inside container")
+    time.sleep(6)
     inContainer = False
     number = 0
     while inContainer == False:
         try:
-            print("phone not found in container ")
+            print("attepting to connect device will restart container at 11 attempts")
             process = subprocess.check_output(connectingDevice , stderr=subprocess.STDOUT ,shell=True)
-            time.sleep(2)
+            time.sleep(4)
             process = subprocess.check_output(validateDisconnectionLocal , stderr=subprocess.STDOUT ,shell=True)
             number +=1
             print(number)
             if number >= 11 :
-                print("restarting container")
+                print("restarting container second phase")
                 process = subprocess.check_output(restartContainer , stderr=subprocess.STDOUT ,shell=True)
                 time.sleep(8)
                 process = subprocess.check_output(adbInsideContainer , stderr=subprocess.STDOUT ,shell=True)
@@ -66,26 +145,28 @@ def localrun():
                 number = 0
 
         except:
-            print("device is no longer in location validating if device is in container")
+            print("device is no longer in located locally, validating if device is connected in container")
             try:
                 process = subprocess.check_output(validatingConnection , stderr=subprocess.STDOUT ,shell=True)
-                print("device has been place in container ready for testing")
-                return
+                print("device has been place in container, READY FOR TESTING")
+                break
             except:
                 print("cant find device in container restarting process")
+                ## i need to place function the searches for the device in different container and call it here to avoid problems
                 localrun()
 
-
 while active == True:
-    print("searching for phone")
-    searchLocally = "adb -s KPS7N18419007886 shell svc wifi enable"
-    seachInContainer = "docker exec -it " + contaiers[0] + " adb -s " + device[0] + " shell svc wifi enable"
-    preparingDevice  = "adb -s KPS7N18419007886 reconnect device "
-    #test_scan = "adb shell svc wifi enable"
+    print("searching for device " + device[deviceTask])
+    print("running container: " + containers[containerTask])
 
-
-
-    runTest()
-    active=False
-
-
+    insideContainerTest()
+    deviceTask += 1
+    containerTask += 1
+    if containerTask >= 10:
+        active=False
+        print("test is over")
+    else:
+        print("initiating next DEVICE")
+        incontainer=False
+        attempt = 0
+        
