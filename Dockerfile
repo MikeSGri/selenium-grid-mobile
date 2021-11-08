@@ -138,8 +138,10 @@ RUN chmod +x /root/entry_point.sh && \
     chmod +x /root/generate_config.sh 
 
 # connecting appium
-ENV CONNECT_TO_GRID=true
-ENV CUSTOM_NODE_CONFIG=true
+ENV CONNECT_TO_GRID=false
+ENV CUSTOM_NODE_CONFIG=false
+ENV RELAXED_SECURITY=true
+ENV CHROMEDRIVER_AUTODOWNLOAD=true
 #===============
 # Expose Ports
 #---------------
