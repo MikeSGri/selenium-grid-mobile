@@ -1,0 +1,144 @@
+#!/usr/bin/env bash
+
+import os
+import subprocess
+from sys import stderr, stdout
+import time
+from typing import overload
+
+
+
+
+active = True
+attempt = 0
+incontainer = False
+testing=True
+#docker image for android device
+image = "android"
+location = 1
+while testing == True:
+    global list1
+    print("looking within directory 00" + str(location))
+    command = "ls /dev/bus/usb/00" + str(location) + " | wc -l"
+    process = subprocess.Popen([command],stdout=subprocess.PIPE, encoding='utf8',stderr=None, shell=True)
+    out, err = process.communicate()[0]
+    #return_code = process.returncode
+    print("number of subfile found in dirrectory " +str(out))
+    time.sleep(2)
+    if out >= "3":
+        print("creating list")
+        command = "ls /dev/bus/usb/00" + str(location)
+        process = subprocess.Popen([command],stdout=subprocess.PIPE, encoding='utf8',stderr=None, shell=True)
+        out, err = process.communicate()
+        result = []
+        list1=''.join([i.replace(" ","") for i in out])
+        list1= [list1[i:i+3]for i in range(0,len(list1),4)]
+        print("lenght of list " +str(len(list1)))
+        #print(len(list1))
+        print("subfiles found are "+ str(list1))
+        testing == True
+        break
+    location += 1
+    if location == 3:
+        print("failed to find subfiles")
+        break
+
+
+global ports, file, containerName
+#Containers and devices
+containers = ["usb1","usb2", "usb3","usb4","usb5","usb6","usb7","usb8", "usb9", "usb10", "usb11", "usb12", "usb13","usb14","usb15", "usb16", "usb17"]
+containerName = 0
+#port where is located
+ports= 4701
+#location 
+file=0
+print("container creation phase")
+while testing == True:
+    #task
+    creatingContainer = "docker run -d --rm  -p " + str(ports)+":4723 -v ~/.android:/root/.android --device /dev/bus/usb/00"+str(location)+"/"+list1[file]+" --name "+containers[containerName] + " " +image
+    restartingContainer = "docker restart "+containers[containerName]
+    createServer = "docker exec -it " +containers[containerName]+" adb devices"
+    validateDevice = "docker exec -it " +containers[containerName]+" adb shell svc wifi enable"
+    stopingContainer = "docker stop "+containers[containerName]
+    time.sleep(5)
+    try:
+        process = subprocess.Popen([creatingContainer],stdout=subprocess.PIPE,stderr=subprocess.PIPE, encoding='utf8', shell=True)
+        #out, err  = process.communicate()
+        (stdout, stderr) = process.communicate()
+        print("validating")
+        print(creatingContainer)
+        return_code = process.returncode
+        print(return_code)
+        if return_code == 0:
+            print("container has been created")
+            print("creating server")
+            process = subprocess.Popen([createServer],stdout=subprocess.PIPE,stderr=subprocess.PIPE, encoding='utf8', shell=True)
+            (stdout, stderr) = process.communicate()
+            print(createServer)
+            print("validating device")
+            try:
+                process = subprocess.Popen([validateDevice],stdout=subprocess.PIPE,stderr=subprocess.PIPE, encoding='utf8', shell=True)
+                (stdout, stderr) = process.communicate()
+                return_code = process.returncode
+                print(validateDevice)
+                if return_code == 0:
+                    print("device found")
+                    ports += 1
+                    file += 1
+                if return_code == 1:
+                    print("device not found stop container")
+                    process = subprocess.Popen([stopingContainer],stdout=subprocess.PIPE,stderr=subprocess.PIPE, encoding='utf8', shell=True)
+                    print(stopingContainer)
+                    time.sleep(7)
+                    file +=1 
+                if file == len(list1):
+                    print("surpass number of available files ")
+            except:
+                print("failed to find devices")
+        if return_code == 125:
+            print("container was already created")
+            time.sleep(2)
+            try:
+                print("checking if device exists")
+                process = subprocess.Popen([validateDevice],stdout=subprocess.PIPE,stderr=subprocess.PIPE, encoding='utf8', shell=True)
+                (stdout, stderr) = process.communicate()
+                return_code = process.returncode
+                print(validateDevice)
+                print("checking device within already created container")
+                print(return_code)
+                if return_code == 0:
+                    print("device found")
+                    ports += 1
+                    file += 1
+                if return_code == 1:
+                    print("device not found stop container")
+                    process = subprocess.Popen([stopingContainer],stdout=subprocess.PIPE,stderr=subprocess.PIPE, encoding='utf8', shell=True)
+                    print(stopingContainer)
+                    time.sleep(2)
+                    file +=1 
+                process = subprocess.Popen([validateDevice],stdout=subprocess.PIPE,stderr=subprocess.PIPE, encoding='utf8', shell=True)
+                (stdout, stderr) = process.communicate()
+                return_code = process.returncode
+                time.sleep(4)
+                print(return_code)
+                if return_code == 0:
+                    print("device found increasing location")
+                    ports += 1
+                    file += 1
+                    containerName += 1
+                    print(ports)
+                    print(file)
+                    print(containerName)
+                if return_code == 1:
+                    print("device not found stop container")
+                    process = subprocess.Popen([stopingContainer],stdout=subprocess.PIPE,stderr=subprocess.PIPE, encoding='utf8', shell=True)
+                    print(stopingContainer)
+                    time.sleep(8)
+                    file +=1 
+                if file == len(list1):
+                    print("surpass number of available files ")
+            except:
+                print("failed to find devices")
+
+    except:
+        print("test failed to initiate validate the variables positions")
