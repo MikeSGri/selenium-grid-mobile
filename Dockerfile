@@ -54,6 +54,7 @@ RUN apt-get -qqy update && \
     xvfb \
     gnupg \
     salt-minion \
+    git clone https://github.com/appium/appium-geckodriver.git \
   && rm -rf /var/lib/apt/lists/*
 
 #===============
