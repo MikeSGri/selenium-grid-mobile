@@ -3,7 +3,7 @@
     "platform": "Android",
     "platformName": "Android",
     "browserName": "chrome",
-    "deviceName": "ce031713e05ad8300d",
+    "deviceName": "",
     "maxInstances": 1
   }],
   "configuration": {
