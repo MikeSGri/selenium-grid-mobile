@@ -15,11 +15,13 @@ if int(action) == 5 or int(action) == 6:
 time.sleep(8)
 global ports, file, containerName
 #turning off oc
+# write the mobile devivce name here 
 mobile=["52003603eaaa5543","5200f8924f569501","95cb9b67","52000239422d26cf","3485e052","96eb06e8","0a378d26","5200a3228f0646ed","b151dee9","0a3750f5","5200dafa4281269f","52006d9fee3255e9","17abea03","1708ea4e","RFCR71CB37P","RFCR7199VWP","RFCR50BHYXE","RFCR71BBQYJ","RFCR70NPFHF","RFCR820YP2P","RFCR81D8PDN","RFCR70TJCHN","RFCR80S625R","RFCR80S9XDV","RFCR70NT5RB","RFCR30X577B","RFCR81BWB7A","RFCR81CRFZW","RFCR50AYERF","RFCR71H2S5V","RFCR7147CZN","RFCR711V7ML","R58M66P5RQJ","R58MA2QWTCB","R58N11ERQXZ","R58M875EYLR","R58M74RXDAL","R58M9659ZAB","R58M919QP1W","R58MA78TF8A"]
 containers = ["usb1","usb2", "usb3","usb4","usb5","usb6","usb7","usb8", "usb9", "usb10", "usb11", "usb12", "usb13","usb14","usb15", "usb16", "usb17","usb18"]
 containerName = 0
 deviceNumber = 0
 loop= 18
+# here we are using the number of devices set above in order to make sure that they are incluided in appium grid
 deviceLoop = len(mobile)
 
 def createFolder():
