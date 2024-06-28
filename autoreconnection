@@ -38,13 +38,6 @@ if int(action) == 2:
     time.sleep(8)
     print("devices have been stopped")
 
-    #!/usr/bin/env bash
-
-    import os
-    import subprocess
-    from sys import stderr, stdout
-    import time
-    from typing import overload
 
     active = True
     attempt = 0
